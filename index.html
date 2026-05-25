@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>音声入力</title>
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js" defer></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -437,16 +437,17 @@ document.querySelectorAll('.grade-btn').forEach(btn => {
 });
 
 // =============================================
-// kuromoji バックグラウンドロード（起動をブロックしない）
+// kuromoji バックグラウンドロード（defer完了後に実行）
 // =============================================
-setTimeout(() => {
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof kuromoji === 'undefined') return;
   kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
     .build((err, tk) => {
       if (err) return;
       tokenizer = tk;
       updateRubyPreview();
     });
-}, 0);
+});
 
 // カタカナ→ひらがな変換
 function toHiragana(str) {
