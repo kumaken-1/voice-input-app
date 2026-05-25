@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おはなし入力</title>
+<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  background: #f0f4ff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+
+h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.05em; }
+
+/* 学年選択 */
+#grade-bar {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.grade-btn {
+  padding: 5px 13px;
+  border: 2px solid #c0ccff;
+  border-radius: 20px;
+  background: white;
+  color: #5566aa;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.grade-btn:hover { background: #e8edff; }
+.grade-btn.active {
+  background: #4a7cff;
+  border-color: #4a7cff;
+  color: white;
+  font-weight: bold;
+}
+
+/* kuromoji ローディング */
+#dic-status {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-bottom: 8px;
+  height: 1.2em;
+}
+
+/* マイクボタン */
+#mic-btn {
+  width: 90px; height: 90px;
+  border-radius: 50%; border: none;
+  background: #4a7cff; color: white;
+  font-size: 2.4rem; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(74,124,255,0.4);
+  transition: background 0.2s, transform 0.1s;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+#mic-btn:hover { background: #3a6ce0; }
+#mic-btn.recording {
+  background: #e84545;
+  animation: pulse 1s infinite;
+  box-shadow: 0 4px 16px rgba(232,69,69,0.5);
+}
+#mic-btn:active { transform: scale(0.95); }
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+#status { font-size: 0.82rem; color: #888; margin-bottom: 14px; height: 1.2em; }
+#status.active { color: #e84545; font-weight: bold; }
+
+/* テキストエリア */
+#transcript-box {
+  width: 100%; max-width: 480px;
+  min-height: 100px;
+  background: white; border: 2px solid #ccd6ff;
+  border-radius: 12px; padding: 12px 14px;
+  font-size: 1.05rem; line-height: 1.7; color: #222;
+  resize: vertical; outline: none;
+  transition: border-color 0.2s; margin-bottom: 6px;
+}
+#transcript-box:focus { border-color: #4a7cff; }
+
+/* 中間テキスト */
+#interim-display {
+  width: 100%; max-width: 480px;
+  min-height: 1.6em; font-size: 0.92rem; color: #aaa;
+  padding: 0 4px; margin-bottom: 6px; word-break: break-all;
+}
+
+/* ルビプレビュー */
+#ruby-preview {
+  display: none;
+  width: 100%; max-width: 480px;
+  background: #fffde7; border: 1px solid #ffe082;
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 1rem; line-height: 2.2; color: #333;
+  margin-bottom: 10px; word-break: break-all;
+}
+#ruby-preview.visible { display: block; }
+#ruby-preview ruby rt { font-size: 0.6em; color: #e67e00; }
+#ruby-label {
+  font-size: 0.72rem; color: #bbb; margin-bottom: 4px;
+}
+
+/* ボタン群 */
+.btn-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  justify-content: center;
+  width: 100%; max-width: 480px; margin-bottom: 8px;
+}
+.action-btn {
+  flex: 1; min-width: 100px;
+  padding: 10px 14px; border: none; border-radius: 8px;
+  font-size: 0.9rem; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, transform 0.1s;
+}
+.action-btn:active { transform: scale(0.97); }
+#copy-btn  { background: #4a7cff; color: white; }
+#copy-btn:hover { background: #3a6ce0; }
+#clear-btn { background: #eee; color: #555; }
+#clear-btn:hover { background: #ddd; }
+
+/* 履歴 */
+#history-section { width: 100%; max-width: 480px; margin-top: 18px; }
+#history-section h2 {
+  font-size: 0.82rem; color: #aaa; font-weight: normal;
+  margin-bottom: 8px; border-top: 1px solid #dde; padding-top: 14px;
+}
+.history-card {
+  background: white; border: 1px solid #e0e6ff;
+  border-radius: 10px; padding: 9px 12px; margin-bottom: 7px;
+  display: flex; align-items: flex-start; gap: 8px;
+  cursor: pointer; transition: background 0.15s;
+}
+.history-card:hover { background: #f4f7ff; }
+.history-body { flex: 1; min-width: 0; }
+.history-time { font-size: 0.72rem; color: #bbb; margin-bottom: 2px; }
+.history-text { font-size: 0.9rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-del { background: none; border: none; color: #ccc; font-size: 1rem; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
+.history-del:hover { color: #e84545; }
+#history-empty { font-size: 0.82rem; color: #ccc; text-align: center; padding: 6px 0; }
+
+/* トースト */
+#toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #333; color: white;
+  padding: 8px 20px; border-radius: 20px;
+  font-size: 0.85rem; transition: transform 0.3s;
+  pointer-events: none; z-index: 999;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* 非対応 */
+#unsupported {
+  display: none; background: #ffe0e0;
+  border: 1px solid #f99; border-radius: 8px;
+  padding: 12px; font-size: 0.88rem; color: #c00;
+  text-align: center; margin-bottom: 12px;
+  max-width: 480px; width: 100%;
+}
+</style>
+</head>
+<body>
+
+<h1>🎤 <span id="ui-title">おはなし入力</span></h1>
+
+<!-- 学年選択 -->
+<div id="grade-bar">
+  <button class="grade-btn" data-grade="1">1年</button>
+  <button class="grade-btn" data-grade="2">2年</button>
+  <button class="grade-btn" data-grade="3">3年</button>
+  <button class="grade-btn" data-grade="4">4年</button>
+  <button class="grade-btn" data-grade="5">5年</button>
+  <button class="grade-btn" data-grade="6">6年</button>
+  <button class="grade-btn" data-grade="7">中学生</button>
+</div>
+
+<div id="dic-status">辞書を読み込み中…</div>
+
+<div id="unsupported">
+  ⚠️ このブラウザは音声入力に対応していません。<br>
+  Chrome（Chromebook）で開いてください。
+</div>
+
+<button id="mic-btn" title="ここを押して話す">🎤</button>
+<div id="status"></div>
+
+<textarea id="transcript-box"></textarea>
+<div id="interim-display"></div>
+
+<div id="ruby-label" style="display:none; width:100%; max-width:480px; font-size:0.72rem; color:#bbb; margin-bottom:2px;">
+  ▼ ふりがな表示（<span id="grade-label"></span>向け）
+</div>
+<div id="ruby-preview"></div>
+
+<div class="btn-row">
+  <button class="action-btn" id="copy-btn"></button>
+  <button class="action-btn" id="clear-btn"></button>
+</div>
+
+<div id="history-section">
+  <h2 id="history-title"></h2>
+  <div id="history-list">
+    <div id="history-empty"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =============================================
+// 学年別 UI テキスト
+// =============================================
+const UI = {
+  1: {
+    hint: 'ボタンをおして　はなしてね',
+    recording: '● きいています…',
+    stopped: 'ていし　しました',
+    placeholder: 'ここに　はなした　ことばが　でてくるよ',
+    copy: '📋 コピー', clear: '🗑 けす',
+    historyTitle: '📝 りれき（さいしん5けん）',
+    historyEmpty: 'まだ　ほぞんされた　りれきは　ありません',
+    toastCopied: 'コピーしました！', toastSaved: 'りれきに　ほぞんしました',
+    toastRecalled: 'よびだしました！',
+    gradeLabel: '1ねんせい',
+  },
+  2: {
+    hint: 'ボタンをおして　話してね',
+    recording: '● きいています…',
+    stopped: 'ていししました',
+    placeholder: 'ここに　話したことばが　出てくるよ',
+    copy: '📋 コピー', clear: '🗑 けす',
+    historyTitle: '📝 りれき（さいしん5けん）',
+    historyEmpty: 'まだ保存されたりれきはありません',
+    toastCopied: 'コピーしました！', toastSaved: 'りれきに保存しました',
+    toastRecalled: 'よびだしました！',
+    gradeLabel: '2年生',
+  },
+  3: {
+    hint: 'ボタンを押して話してね',
+    recording: '● 聞いています…',
+    stopped: '止めました',
+    placeholder: 'ここに話したことばが出てくるよ',
+    copy: '📋 コピー', clear: '🗑 消す',
+    historyTitle: '📝 履歴（最新5件）',
+    historyEmpty: 'まだ保存された履歴はありません',
+    toastCopied: 'コピーしました！', toastSaved: '履歴に保存しました',
+    toastRecalled: '呼び出しました！',
+    gradeLabel: '3年生',
+  },
+};
+[4, 5, 6].forEach(g => {
+  UI[g] = {
+    ...UI[3],
+    hint: 'ボタンを押して話してください',
+    recording: '● 認識中…',
+    stopped: '停止しました',
+    placeholder: '話した内容がここに表示されます',
+    gradeLabel: g + '年生',
+  };
+});
+UI[7] = {
+  hint: 'ボタンを押して話してください',
+  recording: '● 認識中…',
+  stopped: '停止しました',
+  placeholder: '話した内容がここに表示されます',
+  copy: '📋 コピー', clear: '🗑 消去',
+  historyTitle: '📝 履歴（最新5件）',
+  historyEmpty: 'まだ保存された履歴はありません',
+  toastCopied: 'コピーしました！', toastSaved: '履歴に保存しました',
+  toastRecalled: '呼び出しました！',
+  gradeLabel: '中学生',
+};
+
+// =============================================
+// 学年別漢字配当表（累積）
+// =============================================
+const KANJI_BY_GRADE = {
+  1: '一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六',
+  2: '引羽雲園遠何科夏家歌画回会海絵外角活間丸岩顔汽記帰弓牛魚京強教近兄形計元言原戸古午後語工公広交光考行高黄合国黒今才細作算止市矢姉思紙寺自時室社弱首春書少場色食心新親図数西声星晴切雪船線前組走多太体台地池知茶昼長鳥朝直通弟店点電刀冬当東答頭同道読内南肉馬売買麦半番父風分聞米歩母方北毎妹万明鳴毛門夜野友用曜来里理話',
+  3: '悪安暗医委意育員院飲運泳駅央横屋温化荷界開階寒感漢館岸起期客究急級宮球去橋業曲局銀区苦具君係軽血決研県庫湖向幸港号根祭坂仕死使始指歯詩次事持式実写者主守取酒受州拾終習集住重宿所暑助消商章勝乗植申身神真深進世整相送想息速族他打対待代第題炭短談着注柱丁帳調追定庭笛鉄転都度投豆島湯登等動童農波配倍箱畑発反板皮悲美鼻表秒品負部服福物平返勉放味命面問役薬由油有遊予様洋羊葉陽落流旅両緑礼列練路和',
+  4: '愛案以衣位囲胃印英栄塩億加果貨課芽改械害街各覚完官管関観願希季紀喜旗器機議求泣救給挙漁共協鏡競極訓軍郡径型景芸欠結建健験固功好候航康告差菜最材昨札刷察参散産残司士氏史試児治辞失借種周祝順初唱松焼象照賞信成省清静席積折節説浅戦選然争倉巣束側続卒孫帯隊達単置仲貯兆腸低底停的典伝徒努灯堂働特得熱念敗梅博飯飛費必票標不夫付府副粉兵別辺変便包法望牧末満未民無約勇要養浴利陸量輪類令冷例連老労録',
+  5: '圧移因永営衛易益液演応往桜恩仮価河過賀快解格確額刊慣幹眼基寄規技義逆久旧居許境均禁句経潔件検険減現限個護効厚構鉱航混査再災妻採際在財罪雑酸賛支志枝師資飼示似識質舎謝授収術述準序招証条状常情職織責績接設絶専祖素総造像増則測属損退貸態団断築張提程適統銅導独任燃能破犯判版比肥評貧布婦富武復複仏編弁保墓報豊防貿暴務夢迷綿輸余預容略留領歴',
+  6: '異遺域宇映延沿我灰拡閣革割株巻干看簡危机揮貴疑吸供胸郷勤筋系敬警劇激穴絹権憲源厳己呼誤孝皇紅降鋼刻骨困砂座済裁策冊蚕至私姿視詞誌磁射捨尺若樹収宗就衆従縦縮熟純処署諸除将傷障城蒸針仁垂推寸盛聖誠宣専泉洗染善奏窓創装層操蔵臓存尊宅担探誕値宙忠著庁頂潮賃痛展討党糖届難乳認濃脳派廃背俳班晩否批秘腹奮並閉陛片補暮宝訪亡忘棒枚幕密盟模訳郵優幼欲翌乱卵覧裏律臨朗論',
+};
+
+// 選択学年以下の既習漢字セットを返す（中学生以上はnull=すべて既習）
+function getKnownKanji(grade) {
+  if (grade >= 7) return null;
+  let s = '';
+  for (let g = 1; g <= grade; g++) s += KANJI_BY_GRADE[g] || '';
+  return new Set(s);
+}
+
+// =============================================
+// 状態
+// =============================================
+let currentGrade = parseInt(localStorage.getItem('grade') || '3');
+let tokenizer = null;
+let isRecording = false;
+let finalText = '';
+
+// =============================================
+// UI テキスト適用
+// =============================================
+function applyUI(grade) {
+  const t = UI[grade];
+  document.getElementById('status').textContent         = t.hint;
+  document.getElementById('transcript-box').placeholder = t.placeholder;
+  document.getElementById('copy-btn').textContent       = t.copy;
+  document.getElementById('clear-btn').textContent      = t.clear;
+  document.getElementById('history-title').textContent  = t.historyTitle;
+  document.getElementById('history-empty').textContent  = t.historyEmpty;
+  document.getElementById('grade-label').textContent    = t.gradeLabel;
+
+  document.querySelectorAll('.grade-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.grade) === grade);
+  });
+
+  updateRubyPreview();
+}
+
+// =============================================
+// 学年選択
+// =============================================
+document.querySelectorAll('.grade-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentGrade = parseInt(btn.dataset.grade);
+    localStorage.setItem('grade', currentGrade);
+    applyUI(currentGrade);
+  });
+});
+
+// =============================================
+// kuromoji 初期化
+// =============================================
+kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+  .build((err, tk) => {
+    if (err) {
+      document.getElementById('dic-status').textContent = '辞書の読み込みに失敗しました';
+      return;
+    }
+    tokenizer = tk;
+    document.getElementById('dic-status').textContent = '';
+    updateRubyPreview();
+  });
+
+// カタカナ→ひらがな変換
+function toHiragana(str) {
+  return str.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ルビ付きHTMLを生成
+function buildRubyHtml(text, grade) {
+  if (!tokenizer || !text.trim()) return '';
+  const known = getKnownKanji(grade);
+  if (known === null) return escHtml(text); // 中学生以上はルビなし
+  const tokens = tokenizer.tokenize(text);
+  return tokens.map(tok => {
+    const surface = tok.surface_form;
+    const reading = tok.reading;
+    if (!reading || reading === '*') return escHtml(surface);
+    const kanjiInSurface = [...surface].filter(c => /[一-龯㐀-䶿]/.test(c));
+    if (!kanjiInSurface.length) return escHtml(surface);
+    const hasUnknown = kanjiInSurface.some(c => !known.has(c));
+    if (!hasUnknown) return escHtml(surface);
+    const hira = toHiragana(reading);
+    return `<ruby>${escHtml(surface)}<rt>${escHtml(hira)}</rt></ruby>`;
+  }).join('');
+}
+
+function updateRubyPreview() {
+  const text = document.getElementById('transcript-box').value;
+  const preview = document.getElementById('ruby-preview');
+  const label   = document.getElementById('ruby-label');
+  if (!text.trim() || !tokenizer) {
+    preview.classList.remove('visible');
+    label.style.display = 'none';
+    return;
+  }
+  const html = buildRubyHtml(text, currentGrade);
+  preview.innerHTML = html;
+  preview.classList.add('visible');
+  label.style.display = 'block';
+}
+
+// =============================================
+// Web Speech API
+// =============================================
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+  document.getElementById('unsupported').style.display = 'block';
+  document.getElementById('mic-btn').disabled = true;
+}
+
+let recognition;
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    let interim = '', newFinal = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) newFinal += t;
+      else interim += t;
+    }
+    if (newFinal) {
+      finalText += newFinal;
+      document.getElementById('transcript-box').value = finalText;
+      updateRubyPreview();
+    }
+    document.getElementById('interim-display').textContent = interim;
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'no-speech') return;
+    setIdle(UI[currentGrade].stopped);
+  };
+
+  recognition.onend = () => {
+    if (isRecording) { try { recognition.start(); } catch {} }
+  };
+}
+
+// マイクボタン
+document.getElementById('mic-btn').addEventListener('click', () => {
+  if (!recognition) return;
+  const t = UI[currentGrade];
+  if (isRecording) {
+    isRecording = false;
+    recognition.stop();
+    setIdle(t.stopped);
+  } else {
+    finalText = document.getElementById('transcript-box').value;
+    isRecording = true;
+    recognition.start();
+    document.getElementById('mic-btn').classList.add('recording');
+    document.getElementById('mic-btn').textContent = '⏹';
+    document.getElementById('status').textContent = t.recording;
+    document.getElementById('status').classList.add('active');
+  }
+});
+
+function setIdle(msg) {
+  isRecording = false;
+  document.getElementById('mic-btn').classList.remove('recording');
+  document.getElementById('mic-btn').textContent = '🎤';
+  document.getElementById('status').textContent = msg || UI[currentGrade].hint;
+  document.getElementById('status').classList.remove('active');
+  document.getElementById('interim-display').textContent = '';
+}
+
+// テキストエリア手動編集時もルビ更新
+document.getElementById('transcript-box').addEventListener('input', () => {
+  finalText = document.getElementById('transcript-box').value;
+  updateRubyPreview();
+});
+
+// =============================================
+// コピー
+// =============================================
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const text = document.getElementById('transcript-box').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast(UI[currentGrade].toastCopied));
+});
+
+// =============================================
+// 履歴
+// =============================================
+const HISTORY_KEY = 'voiceHistory';
+const MAX_HISTORY = 5;
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+}
+function saveToHistory(text) {
+  if (!text.trim()) return;
+  const list = loadHistory();
+  list.unshift({ text: text.trim(), time: new Date().toLocaleString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) });
+  if (list.length > MAX_HISTORY) list.length = MAX_HISTORY;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  renderHistory();
+}
+function renderHistory() {
+  const list  = loadHistory();
+  const el    = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  if (!list.length) {
+    el.innerHTML = '';
+    el.appendChild(empty);
+    return;
+  }
+  el.innerHTML = '';
+  list.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'history-card';
+    card.innerHTML = `
+      <div class="history-body">
+        <div class="history-time">${item.time}</div>
+        <div class="history-text">${escHtml(item.text)}</div>
+      </div>
+      <button class="history-del" data-i="${i}">✕</button>`;
+    card.querySelector('.history-body').addEventListener('click', () => {
+      finalText = item.text;
+      document.getElementById('transcript-box').value = item.text;
+      updateRubyPreview();
+      showToast(UI[currentGrade].toastRecalled);
+    });
+    card.querySelector('.history-del').addEventListener('click', e => {
+      e.stopPropagation();
+      const h = loadHistory(); h.splice(i, 1);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+      renderHistory();
+    });
+    el.appendChild(card);
+  });
+}
+renderHistory();
+
+// クリア
+document.getElementById('clear-btn').addEventListener('click', () => {
+  const text = document.getElementById('transcript-box').value;
+  saveToHistory(text);
+  finalText = '';
+  document.getElementById('transcript-box').value = '';
+  document.getElementById('interim-display').textContent = '';
+  document.getElementById('ruby-preview').classList.remove('visible');
+  document.getElementById('ruby-label').style.display = 'none';
+  setIdle(UI[currentGrade].hint);
+  if (text.trim()) showToast(UI[currentGrade].toastSaved);
+});
+
+
+// =============================================
+// トースト
+// =============================================
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// =============================================
+// =============================================
+// キーボードショートカット
+// テキストエリア外にフォーカスがある場合も動作させる
+// =============================================
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const box     = document.getElementById('transcript-box');
+  const focused = document.activeElement === box;
+
+  switch (e.key.toLowerCase()) {
+    case 'c':
+      if (focused) return; // フォーカスあり→ブラウザ標準に任せる
+      e.preventDefault();
+      if (box.value) navigator.clipboard.writeText(box.value)
+        .then(() => showToast(UI[currentGrade].toastCopied));
+      break;
+
+    case 'a':
+      if (focused) return;
+      e.preventDefault();
+      box.focus();
+      box.select();
+      break;
+
+    case 'z':
+      if (focused) return;
+      e.preventDefault();
+      box.focus();
+      document.execCommand('undo');
+      break;
+
+    case 'v':
+      if (focused) return;
+      e.preventDefault();
+      box.focus();
+      document.execCommand('paste');
+      break;
+
+    case 'm':
+      e.preventDefault();
+      document.getElementById('mic-btn').click();
+      break;
+  }
+});
+
+// =============================================
+// 初期化
+// =============================================
+applyUI(currentGrade);
+</script>
+</body>
+</html>
