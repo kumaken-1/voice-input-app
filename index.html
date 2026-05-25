@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>音声入力</title>
-<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js" defer></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -433,21 +432,35 @@ document.querySelectorAll('.grade-btn').forEach(btn => {
     currentGrade = parseInt(btn.dataset.grade);
     localStorage.setItem('grade', currentGrade);
     applyUI(currentGrade);
+    loadKuromoji(); // 1〜6年を押したときだけ辞書をロード
+    updateRubyPreview();
   });
 });
 
 // =============================================
-// kuromoji バックグラウンドロード（defer完了後に実行）
+// kuromoji オンデマンドロード（学年ボタンを押したときだけ読み込む）
 // =============================================
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof kuromoji === 'undefined') return;
-  kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
-    .build((err, tk) => {
-      if (err) return;
-      tokenizer = tk;
-      updateRubyPreview();
-    });
-});
+let kuromojiLoading = false;
+
+function loadKuromoji() {
+  if (tokenizer || kuromojiLoading) return;
+  if (currentGrade >= 7) return; // 中学生はふりがな不要
+  kuromojiLoading = true;
+
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js';
+  s.onload = () => {
+    kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+      .build((err, tk) => {
+        kuromojiLoading = false;
+        if (err) return;
+        tokenizer = tk;
+        updateRubyPreview();
+      });
+  };
+  s.onerror = () => { kuromojiLoading = false; };
+  document.head.appendChild(s);
+}
 
 // カタカナ→ひらがな変換
 function toHiragana(str) {
