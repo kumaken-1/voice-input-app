@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>おはなし入力</title>
+<title>音声入力</title>
 <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -176,7 +176,10 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 </head>
 <body>
 
-<h1>🎤 <span id="ui-title">おはなし入力</span></h1>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+  <h1 style="margin-bottom:0;">🎤 音声入力</h1>
+  <button id="help-btn" style="padding:4px 12px;border:1.5px solid #4a7cff;border-radius:14px;background:white;color:#4a7cff;font-size:0.8rem;cursor:pointer;font-family:inherit;">使い方</button>
+</div>
 
 <!-- 学年選択 -->
 <div id="grade-bar">
@@ -218,6 +221,68 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
     <div id="history-empty"></div>
   </div>
 </div>
+
+<!-- 使い方モーダル -->
+<div id="help-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
+  <div id="help-modal" style="background:white;border-radius:16px;padding:24px 20px;width:min(460px,92vw);max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <strong style="font-size:1rem;">📖 使い方</strong>
+      <button id="help-close" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#aaa;line-height:1;">✕</button>
+    </div>
+
+    <section style="margin-bottom:16px;">
+      <p style="font-size:0.8rem;font-weight:bold;color:#4a7cff;margin-bottom:6px;">🎤 音声入力</p>
+      <ul style="font-size:0.88rem;line-height:1.8;padding-left:1.2em;color:#444;">
+        <li>マイクボタンを押すと録音開始。もう一度押すと停止。</li>
+        <li>話した言葉がリアルタイムでテキストエリアに表示されます。</li>
+        <li>ネット接続が必要です（Google の音声認識を使用）。</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom:16px;">
+      <p style="font-size:0.8rem;font-weight:bold;color:#4a7cff;margin-bottom:6px;">⌨️ ショートカットキー</p>
+      <table style="font-size:0.86rem;border-collapse:collapse;width:100%;">
+        <tr style="background:#f0f4ff;"><td style="padding:5px 8px;border-radius:4px 0 0 4px;font-family:monospace;white-space:nowrap;">Ctrl + M</td><td style="padding:5px 8px;color:#444;">音声入力の開始 / 終了</td></tr>
+        <tr><td style="padding:5px 8px;font-family:monospace;white-space:nowrap;">Ctrl + C</td><td style="padding:5px 8px;color:#444;">テキストを全文コピー</td></tr>
+        <tr style="background:#f0f4ff;"><td style="padding:5px 8px;font-family:monospace;white-space:nowrap;">Ctrl + A</td><td style="padding:5px 8px;color:#444;">テキストを全選択</td></tr>
+        <tr><td style="padding:5px 8px;font-family:monospace;white-space:nowrap;">Ctrl + V</td><td style="padding:5px 8px;color:#444;">テキストエリアにペースト</td></tr>
+        <tr style="background:#f0f4ff;"><td style="padding:5px 8px;font-family:monospace;white-space:nowrap;">Ctrl + Z</td><td style="padding:5px 8px;color:#444;">元に戻す</td></tr>
+      </table>
+      <p style="font-size:0.75rem;color:#bbb;margin-top:4px;">※ テキストエリアにフォーカスがある場合は通常のブラウザ動作と同じです。</p>
+    </section>
+
+    <section style="margin-bottom:16px;">
+      <p style="font-size:0.8rem;font-weight:bold;color:#4a7cff;margin-bottom:6px;">📋 コピーして使う</p>
+      <ul style="font-size:0.88rem;line-height:1.8;padding-left:1.2em;color:#444;">
+        <li>「コピー」ボタンまたは Ctrl+C でテキストをコピー。</li>
+        <li>Google ドキュメント・フォームなど好きなアプリに貼り付けて使えます。</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom:16px;">
+      <p style="font-size:0.8rem;font-weight:bold;color:#4a7cff;margin-bottom:6px;">🔤 ふりがな表示</p>
+      <ul style="font-size:0.88rem;line-height:1.8;padding-left:1.2em;color:#444;">
+        <li>上部の学年ボタンで学年を選ぶと、その学年でまだ習っていない漢字にふりがなを付けて下に表示します。</li>
+        <li>ふりがなはプレビュー表示のみで、コピーされるテキストには含まれません。</li>
+      </ul>
+    </section>
+
+    <section>
+      <p style="font-size:0.8rem;font-weight:bold;color:#4a7cff;margin-bottom:6px;">📝 履歴</p>
+      <ul style="font-size:0.88rem;line-height:1.8;padding-left:1.2em;color:#444;">
+        <li>「消す／消去」ボタンを押すと、テキストが自動的に履歴に保存されます。</li>
+        <li>履歴のカードをクリックすると、そのテキストを呼び出せます。</li>
+        <li>✕ ボタンで履歴を1件ずつ削除できます。</li>
+        <li>最新5件まで保存。ページを閉じても残ります。</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<!-- クレジット -->
+<p style="font-size:0.68rem;color:#ccc;text-align:center;margin-top:20px;padding-bottom:8px;">
+  音声認識：Google Web Speech API ／ ふりがな：<a href="https://github.com/takuyaa/kuromoji" target="_blank" style="color:#ccc;">kuromoji.js</a> (Apache 2.0, © Atilika Inc.)
+</p>
 
 <div id="toast"></div>
 
@@ -606,6 +671,20 @@ document.addEventListener('keydown', (e) => {
       document.getElementById('mic-btn').click();
       break;
   }
+});
+
+// =============================================
+// 使い方モーダル
+// =============================================
+const helpOverlay = document.getElementById('help-overlay');
+document.getElementById('help-btn').addEventListener('click', () => {
+  helpOverlay.style.display = 'flex';
+});
+document.getElementById('help-close').addEventListener('click', () => {
+  helpOverlay.style.display = 'none';
+});
+helpOverlay.addEventListener('click', (e) => {
+  if (e.target === helpOverlay) helpOverlay.style.display = 'none';
 });
 
 // =============================================
