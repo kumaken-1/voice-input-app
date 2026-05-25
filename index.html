@@ -138,8 +138,6 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 .action-btn:active { transform: scale(0.97); }
 #copy-btn  { background: #4a7cff; color: white; }
 #copy-btn:hover { background: #3a6ce0; }
-#clear-btn { background: #eee; color: #555; }
-#clear-btn:hover { background: #ddd; }
 
 /* 履歴バー（下部固定） */
 #history-bar {
@@ -238,7 +236,6 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 
 <div class="btn-row">
   <button class="action-btn" id="copy-btn"></button>
-  <button class="action-btn" id="clear-btn"></button>
 </div>
 
 </div><!-- /#main-area -->
@@ -322,7 +319,7 @@ const UI = {
     recording: '● きいています…',
     stopped: 'ていし　しました',
     placeholder: 'ここに　はなした　ことばが　でてくるよ',
-    copy: '📋 コピー', clear: '🗑 けす',
+    copy: '📋 コピー',
     historyTitle: '📝 りれき（さいしん5けん）',
     historyEmpty: 'まだ　ほぞんされた　りれきは　ありません',
     toastCopied: 'コピーしました！', toastSaved: 'りれきに　ほぞんしました',
@@ -334,7 +331,7 @@ const UI = {
     recording: '● きいています…',
     stopped: 'ていししました',
     placeholder: 'ここに　話したことばが　出てくるよ',
-    copy: '📋 コピー', clear: '🗑 けす',
+    copy: '📋 コピー',
     historyTitle: '📝 りれき（さいしん5けん）',
     historyEmpty: 'まだ保存されたりれきはありません',
     toastCopied: 'コピーしました！', toastSaved: 'りれきに保存しました',
@@ -346,7 +343,7 @@ const UI = {
     recording: '● 聞いています…',
     stopped: '止めました',
     placeholder: 'ここに話したことばが出てくるよ',
-    copy: '📋 コピー', clear: '🗑 消す',
+    copy: '📋 コピー',
     historyTitle: '📝 履歴（最新5件）',
     historyEmpty: 'まだ保存された履歴はありません',
     toastCopied: 'コピーしました！', toastSaved: '履歴に保存しました',
@@ -369,7 +366,7 @@ UI[7] = {
   recording: '● 認識中…',
   stopped: '停止しました',
   placeholder: '話した内容がここに表示されます',
-  copy: '📋 コピー', clear: '🗑 消去',
+  copy: '📋 コピー',
   historyTitle: '📝 履歴（最新5件）',
   historyEmpty: 'まだ保存された履歴はありません',
   toastCopied: 'コピーしました！', toastSaved: '履歴に保存しました',
@@ -413,7 +410,6 @@ function applyUI(grade) {
   document.getElementById('status').textContent         = t.hint;
   document.getElementById('transcript-box').placeholder = t.placeholder;
   document.getElementById('copy-btn').textContent       = t.copy;
-  document.getElementById('clear-btn').textContent      = t.clear;
   document.getElementById('history-bar-title').textContent = t.historyTitle;
   document.getElementById('grade-label').textContent    = t.gradeLabel;
 
@@ -542,7 +538,14 @@ document.getElementById('mic-btn').addEventListener('click', () => {
     recognition.stop();
     setIdle(t.stopped);
   } else {
-    finalText = document.getElementById('transcript-box').value;
+    const prev = document.getElementById('transcript-box').value;
+    if (prev.trim()) {
+      saveToHistory(prev);
+      document.getElementById('transcript-box').value = '';
+      document.getElementById('ruby-preview').classList.remove('visible');
+      document.getElementById('ruby-label').style.display = 'none';
+    }
+    finalText = '';
     isRecording = true;
     recognition.start();
     document.getElementById('mic-btn').classList.add('recording');
@@ -630,18 +633,6 @@ function renderHistory() {
 }
 renderHistory();
 
-// クリア
-document.getElementById('clear-btn').addEventListener('click', () => {
-  const text = document.getElementById('transcript-box').value;
-  saveToHistory(text);
-  finalText = '';
-  document.getElementById('transcript-box').value = '';
-  document.getElementById('interim-display').textContent = '';
-  document.getElementById('ruby-preview').classList.remove('visible');
-  document.getElementById('ruby-label').style.display = 'none';
-  setIdle(UI[currentGrade].hint);
-  if (text.trim()) showToast(UI[currentGrade].toastSaved);
-});
 
 
 // =============================================
