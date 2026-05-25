@@ -11,11 +11,19 @@
 body {
   font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
   background: #f0f4ff;
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#main-area {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
+  padding: 16px 16px 8px;
 }
 
 h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.05em; }
@@ -133,29 +141,46 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 #clear-btn { background: #eee; color: #555; }
 #clear-btn:hover { background: #ddd; }
 
-/* 履歴 */
-#history-section { width: 100%; max-width: 480px; margin-top: 18px; }
-#history-section h2 {
-  font-size: 0.82rem; color: #aaa; font-weight: normal;
-  margin-bottom: 8px; border-top: 1px solid #dde; padding-top: 14px;
+/* 履歴バー（下部固定） */
+#history-bar {
+  flex-shrink: 0;
+  background: white;
+  border-top: 1px solid #e0e6ff;
+  padding: 5px 12px 6px;
 }
-.history-card {
-  background: white; border: 1px solid #e0e6ff;
-  border-radius: 10px; padding: 9px 12px; margin-bottom: 7px;
-  display: flex; align-items: flex-start; gap: 8px;
-  cursor: pointer; transition: background 0.15s;
+#history-bar-title {
+  font-size: 0.68rem; color: #bbb; margin-bottom: 3px;
 }
-.history-card:hover { background: #f4f7ff; }
-.history-body { flex: 1; min-width: 0; }
-.history-time { font-size: 0.72rem; color: #bbb; margin-bottom: 2px; }
-.history-text { font-size: 0.9rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.history-del { background: none; border: none; color: #ccc; font-size: 1rem; cursor: pointer; padding: 0 2px; flex-shrink: 0; }
-.history-del:hover { color: #e84545; }
-#history-empty { font-size: 0.82rem; color: #ccc; text-align: center; padding: 6px 0; }
+.history-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 4px; border-radius: 4px;
+  cursor: pointer; min-height: 22px;
+  transition: background 0.12s;
+}
+.history-row:hover { background: #f0f4ff; }
+.history-row-num {
+  font-size: 0.68rem; color: #ccc;
+  flex-shrink: 0; width: 12px; text-align: right;
+}
+.history-row-time {
+  font-size: 0.68rem; color: #bbb;
+  flex-shrink: 0; white-space: nowrap;
+}
+.history-row-text {
+  font-size: 0.82rem; color: #444;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.history-row-empty { color: #e0e0e0; }
+.history-row-del {
+  background: none; border: none; color: #ddd;
+  font-size: 0.75rem; cursor: pointer; flex-shrink: 0; padding: 0 2px;
+}
+.history-row-del:hover { color: #e84545; }
 
 /* トースト */
 #toast {
-  position: fixed; bottom: 20px; left: 50%;
+  position: fixed; bottom: 160px; left: 50%;
   transform: translateX(-50%) translateY(60px);
   background: #333; color: white;
   padding: 8px 20px; border-radius: 20px;
@@ -175,6 +200,7 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 </style>
 </head>
 <body>
+<div id="main-area">
 
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
   <h1 style="margin-bottom:0;">🎤 音声入力</h1>
@@ -215,11 +241,11 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
   <button class="action-btn" id="clear-btn"></button>
 </div>
 
-<div id="history-section">
-  <h2 id="history-title"></h2>
-  <div id="history-list">
-    <div id="history-empty"></div>
-  </div>
+</div><!-- /#main-area -->
+
+<div id="history-bar">
+  <div id="history-bar-title"></div>
+  <div id="history-list"></div>
 </div>
 
 <!-- 使い方モーダル -->
@@ -388,8 +414,7 @@ function applyUI(grade) {
   document.getElementById('transcript-box').placeholder = t.placeholder;
   document.getElementById('copy-btn').textContent       = t.copy;
   document.getElementById('clear-btn').textContent      = t.clear;
-  document.getElementById('history-title').textContent  = t.historyTitle;
-  document.getElementById('history-empty').textContent  = t.historyEmpty;
+  document.getElementById('history-bar-title').textContent = t.historyTitle;
   document.getElementById('grade-label').textContent    = t.gradeLabel;
 
   document.querySelectorAll('.grade-btn').forEach(b => {
@@ -569,38 +594,39 @@ function saveToHistory(text) {
   renderHistory();
 }
 function renderHistory() {
-  const list  = loadHistory();
-  const el    = document.getElementById('history-list');
-  const empty = document.getElementById('history-empty');
-  if (!list.length) {
-    el.innerHTML = '';
-    el.appendChild(empty);
-    return;
-  }
+  const list = loadHistory();
+  const el   = document.getElementById('history-list');
   el.innerHTML = '';
-  list.forEach((item, i) => {
-    const card = document.createElement('div');
-    card.className = 'history-card';
-    card.innerHTML = `
-      <div class="history-body">
-        <div class="history-time">${item.time}</div>
-        <div class="history-text">${escHtml(item.text)}</div>
-      </div>
-      <button class="history-del" data-i="${i}">✕</button>`;
-    card.querySelector('.history-body').addEventListener('click', () => {
-      finalText = item.text;
-      document.getElementById('transcript-box').value = item.text;
-      updateRubyPreview();
-      showToast(UI[currentGrade].toastRecalled);
-    });
-    card.querySelector('.history-del').addEventListener('click', e => {
-      e.stopPropagation();
-      const h = loadHistory(); h.splice(i, 1);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
-      renderHistory();
-    });
-    el.appendChild(card);
-  });
+  for (let i = 0; i < MAX_HISTORY; i++) {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    if (i < list.length) {
+      const item = list[i];
+      row.innerHTML = `
+        <span class="history-row-num">${i + 1}</span>
+        <span class="history-row-time">${item.time}</span>
+        <span class="history-row-text">${escHtml(item.text)}</span>
+        <button class="history-row-del" data-i="${i}">✕</button>`;
+      row.querySelector('.history-row-text').addEventListener('click', () => {
+        finalText = item.text;
+        document.getElementById('transcript-box').value = item.text;
+        updateRubyPreview();
+        showToast(UI[currentGrade].toastRecalled);
+      });
+      row.querySelector('.history-row-del').addEventListener('click', e => {
+        e.stopPropagation();
+        const h = loadHistory(); h.splice(i, 1);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+        renderHistory();
+      });
+    } else {
+      row.innerHTML = `
+        <span class="history-row-num">${i + 1}</span>
+        <span class="history-row-text history-row-empty">—</span>`;
+      row.style.cursor = 'default';
+    }
+    el.appendChild(row);
+  }
 }
 renderHistory();
 
