@@ -12,6 +12,7 @@ body {
   font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
   background: #f0f4ff;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -19,7 +20,9 @@ body {
 
 #main-area {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35,6 +38,8 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
   margin-bottom: 12px;
   flex-wrap: wrap;
   justify-content: center;
+  width: 100%;
+  max-width: 480px;
 }
 .grade-btn {
   padding: 5px 13px;
@@ -200,7 +205,7 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 <body>
 <div id="main-area">
 
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;width:100%;max-width:480px;justify-content:center;">
   <h1 style="margin-bottom:0;">🎤 音声入力</h1>
   <button id="help-btn" style="padding:4px 12px;border:1.5px solid #4a7cff;border-radius:14px;background:white;color:#4a7cff;font-size:0.8rem;cursor:pointer;font-family:inherit;">使い方</button>
 </div>
@@ -237,6 +242,11 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
 <div class="btn-row">
   <button class="action-btn" id="copy-btn"></button>
 </div>
+
+<!-- クレジット -->
+<p style="font-size:0.68rem;color:#ccc;text-align:center;margin-top:16px;padding-bottom:4px;width:100%;max-width:480px;">
+  音声認識：Google Web Speech API ／ ふりがな：<a href="https://github.com/takuyaa/kuromoji" target="_blank" style="color:#ccc;">kuromoji.js</a> (Apache 2.0, © Atilika Inc.)
+</p>
 
 </div><!-- /#main-area -->
 
@@ -301,11 +311,6 @@ h1 { font-size: 1.1rem; color: #3a3a5c; margin-bottom: 10px; letter-spacing: 0.0
     </section>
   </div>
 </div>
-
-<!-- クレジット -->
-<p style="font-size:0.68rem;color:#ccc;text-align:center;margin-top:20px;padding-bottom:8px;">
-  音声認識：Google Web Speech API ／ ふりがな：<a href="https://github.com/takuyaa/kuromoji" target="_blank" style="color:#ccc;">kuromoji.js</a> (Apache 2.0, © Atilika Inc.)
-</p>
 
 <div id="toast"></div>
 
